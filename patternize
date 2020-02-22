@@ -86,6 +86,12 @@ def main
 	puts asset_javascript(available)
 	puts "</html>"
 
+	$stderr.puts "#{codes_used.size} colors used"
+	#show_stitch_counts(codes_used, colors)
+	$stderr.puts "#{codes_used.values.inject(&:+)} total stitches"
+end
+
+def show_stitch_counts(codes_used, colors)
 	ansi_colors = {}
 	6.times do |r|
 		6.times do |g|
@@ -97,11 +103,10 @@ def main
 		end
 	end
 	#$stderr.puts ansi_colors.inspect
-	$stderr.puts "#{codes_used.size} colors used"
 	codes_used.each do |code, count|
-		ansi, _, _, _ = find_closest(ansi_colors, *available[code])
+		ansi, _, _, _ = find_closest(ansi_colors, *colors[code])
 		$stderr.printf "  code %s (\x1b[38;5;%dm%02x, %02x, %02x\x1b[0m) = %d times\n",
-			code, ansi, *available[code], count
+			code, ansi, *colors[code], count
 	end
 end
 
