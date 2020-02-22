@@ -1,0 +1,166 @@
+#!/usr/bin/ruby
+#
+# Convert a PNG file to an HTML pattern for cross stitching.
+# Each cell in the PNG file is mapped to the closest DMC floss code listed
+# in the file floss.csv, using Floyd-Steinberg dithering.
+# White cells are skipped -- not stitched, not dithered.
+#
+# Usage:
+#   ./patternize foo.png > foo.html
+#
+# Required files:
+#   - table.csv (see make-table)
+#   - floss.csv (a list of DMC floss codes available, one per line)
+
+require 'chunky_png'
+
+def main
+	if ARGV.size != 1
+		$stderr.puts "Usage:"
+		$stderr.puts "  #{$0} image.png"
+		exit 1
+	end
+
+	colors = read_standard_colors("table.csv")
+	available = read_available_colors("floss.csv").map { |code| [ code, colors[code] ] }.to_h
+	$stderr.puts "#{colors.size} known colors"
+	$stderr.puts "#{available.size} colors available"
+
+	codes_used = Hash.new(0)
+
+	image = ChunkyPNG::Image.from_file(ARGV.first)
+	$stderr.puts "Image is #{image.width} x #{image.height}"
+	pixels = (0...image.height).map { |y|
+		(0...image.width).map { |x|
+			c = image[x,y]
+			[ (c>>24), (c>>16)&0xff, (c>>8)&0xff ]
+		}
+	}
+	puts "<html><head>"
+	puts asset_css
+	puts "</head><body>"
+	puts "<table cellpadding=0 cellspacing=0>"
+	image.height.times do |y|
+		puts %Q{<tr height="20">}
+		image.width.times do |x|
+			sr, sg, sb = *pixels[y][x]
+			sr = bracket(0, sr, 255)
+			sg = bracket(0, sg, 255)
+			sb = bracket(0, sb, 255)
+			if sr == 255 && sg == 255 && sb == 255
+				puts %Q{<td width="20" bgcolor="#ffffff"></td>}
+				next
+			end
+			code, r, g, b = find_closest(available, sr, sg, sb)
+			codes_used[code] += 1
+			printf %Q{<td width="20" bgcolor="#%02x%02x%02x"></td>\n}, r, g, b
+			if x < image.width-1 && pixels[y][x+1] != [255, 255, 255]
+				pixels[y][x+1][0] += (sr-r) * 7/16
+				pixels[y][x+1][1] += (sg-g) * 7/16
+				pixels[y][x+1][2] += (sb-b) * 7/16
+			end
+			if y < image.height-1
+				if x < image.width-1 && pixels[y+1][x+1] != [255, 255, 255]
+					pixels[y+1][x+1][0] += (sr-r) * 1/16
+					pixels[y+1][x+1][1] += (sg-g) * 1/16
+					pixels[y+1][x+1][2] += (sb-b) * 1/16
+				end
+				if pixels[y+1][x] != [255, 255, 255]
+					pixels[y+1][x][0] += (sr-r) * 5/16
+					pixels[y+1][x][1] += (sg-g) * 5/16
+					pixels[y+1][x][2] += (sb-b) * 5/16
+				end
+				if x > 0 &&  pixels[y+1][x-1] != [255, 255, 255]
+					pixels[y+1][x-1][0] += (sr-r) * 3/16
+					pixels[y+1][x-1][1] += (sg-g) * 3/16
+					pixels[y+1][x-1][2] += (sb-b) * 3/16
+				end
+			end
+		end
+		puts "</tr>"
+	end
+	puts "</table></body>"
+	puts asset_javascript
+	puts "</html>"
+
+	ansi_colors = {}
+	6.times do |r|
+		6.times do |g|
+			6.times do |b|
+				code = 16 + 36*r + 6*g + b
+				ansi_colors[code] = [0x33*r, 0x33*g, 0x33*b]
+				#$stderr.printf "\x1b[38;5;%dm%d = %02x, %02x, %02x\x1b[0m\n", code, code, 0x33*r, 0x33*g, 0x33*b
+			end
+		end
+	end
+	#$stderr.puts ansi_colors.inspect
+	$stderr.puts "#{codes_used.size} colors used"
+	codes_used.each do |code, count|
+		ansi, _, _, _ = find_closest(ansi_colors, *available[code])
+		$stderr.printf "  code %s (\x1b[38;5;%dm%02x, %02x, %02x\x1b[0m) = %d times\n",
+			code, ansi, *available[code], count
+	end
+end
+
+def bracket(lo, x, hi)
+	if x < lo
+		lo
+	elsif x > hi
+		hi
+	else
+		x
+	end
+end
+
+def find_closest(colors, r, g, b)
+	best_dist = best_code = nil
+	colors.each do |code, rgb|
+		dist = (rgb[0]-r)**2 + (rgb[1]-g)**2 + (rgb[2]-b)**2
+		if best_code.nil? || dist < best_dist
+			best_code = code
+			best_dist = dist
+		end
+	end
+	c = colors[best_code]
+	#$stderr.printf "%x,%x,%x -> %x,%x,%x (%s) -> %d\n", r, g, b, c[0], c[1], c[2], best_code, best_dist
+	[best_code, *c]
+end
+
+def read_standard_colors(fn)
+	File.read("table.csv").lines.map { |line|
+		line.split(',')
+	}.map { |a, b|
+		b = b.to_i(16)
+		[a, [b>>16, (b>>8)&0xff, b&0xff]]
+	}.to_h
+end
+
+def read_available_colors(fn)
+	File.read(fn).lines.map(&:chomp)
+end
+
+def asset_css
+	%Q{
+		<style>
+		td { text-align: center; }
+		</style>
+	}
+end
+
+def asset_javascript
+	%Q{
+		<script>
+		arr = document.getElementsByTagName("td")
+		for (i=0; i<arr.length; i++) {
+			arr[i].addEventListener('click', (ev) => {
+				col = ev.target.bgColor;
+				for (j=0; j<arr.length; j++) {
+					arr[j].innerHTML = arr[j].bgColor == col ? "X" : "";
+				}
+			})
+		}
+		</script>
+	}
+end
+
+main

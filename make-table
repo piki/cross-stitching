@@ -1,0 +1,22 @@
+#!/usr/bin/ruby
+#
+# Make a table of DMC floss (embroidery or cross-stitch thread) colors,
+# mapping names to RGB values.  The output is in CSV format.
+#
+# Usage:
+#   for i in `seq 1 6`; do
+#     wget http://www.camelia.sk/dmc_$i.htm
+#   done
+#   ./make-table dmc_?.htm > table.csv
+
+code = hex = nil
+
+ARGF.each_line do |line|
+	if line =~ /<FONT face="arial, helvetica, sans-serif" size=2>(\w+)<.*\/FONT>/i
+		code = $1 unless code
+	elsif line =~ /<TD bgColor=#([0-9a-f]{6})>&nbsp;<\/TD>/i
+		hex = $1
+		puts "#{code},#{hex}"
+		code = hex = nil
+	end
+end
