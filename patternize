@@ -80,8 +80,10 @@ def main
 		end
 		puts "</tr>"
 	end
-	puts "</table></body>"
-	puts asset_javascript
+	puts "</table>"
+	puts %Q{<p id="hint"></p>}
+	puts "</body>"
+	puts asset_javascript(available)
 	puts "</html>"
 
 	ansi_colors = {}
@@ -151,20 +153,31 @@ def asset_css(font_size)
 	}
 end
 
-def asset_javascript
-	%Q{
+def asset_javascript(codes)
+	%Q%
 		<script>
+		colors={
+			#{codes.map { |k, v| sprintf %Q{"#%02x%02x%02x": "%s"}, *v, k }.join(",\n")}
+		}
 		arr = document.getElementsByTagName("td")
 		for (i=0; i<arr.length; i++) {
 			arr[i].addEventListener('click', (ev) => {
 				col = ev.target.bgColor;
+				count = 0
 				for (j=0; j<arr.length; j++) {
-					arr[j].innerHTML = arr[j].bgColor == col ? "X" : "";
+					if (arr[j].bgColor == col) {
+						count++;
+						arr[j].innerHTML = "X";
+					}
+					else {
+						arr[j].innerHTML = "";
+					}
 				}
+				document.getElementById("hint").innerHTML = "Color " + colors[col] + " used " + count + " times";
 			})
 		}
 		</script>
-	}
+	%
 end
 
 main
