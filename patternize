@@ -36,24 +36,25 @@ def main
 			[ (c>>24), (c>>16)&0xff, (c>>8)&0xff ]
 		}
 	}
+	td_size = [1200/image.width, 800/image.height].min
 	puts "<html><head>"
-	puts asset_css
+	puts asset_css(td_size*3/4)
 	puts "</head><body>"
 	puts "<table cellpadding=0 cellspacing=0>"
 	image.height.times do |y|
-		puts %Q{<tr height="20">}
+		puts %Q{<tr height="#{td_size}">}
 		image.width.times do |x|
 			sr, sg, sb = *pixels[y][x]
 			sr = bracket(0, sr, 255)
 			sg = bracket(0, sg, 255)
 			sb = bracket(0, sb, 255)
 			if sr == 255 && sg == 255 && sb == 255
-				puts %Q{<td width="20" bgcolor="#ffffff"></td>}
+				puts %Q{<td width="#{td_size}" bgcolor="#ffffff"></td>}
 				next
 			end
 			code, r, g, b = find_closest(available, sr, sg, sb)
 			codes_used[code] += 1
-			printf %Q{<td width="20" bgcolor="#%02x%02x%02x"></td>\n}, r, g, b
+			printf %Q{<td width="#{td_size}" bgcolor="#%02x%02x%02x"></td>\n}, r, g, b
 			if x < image.width-1 && pixels[y][x+1] != [255, 255, 255]
 				pixels[y][x+1][0] += (sr-r) * 7/16
 				pixels[y][x+1][1] += (sg-g) * 7/16
@@ -139,10 +140,13 @@ def read_available_colors(fn)
 	File.read(fn).lines.map(&:chomp)
 end
 
-def asset_css
+def asset_css(font_size)
 	%Q{
 		<style>
-		td { text-align: center; }
+		td {
+			text-align: center;
+			font-size: #{font_size}px;
+		}
 		</style>
 	}
 end
