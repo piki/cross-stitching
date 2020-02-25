@@ -190,6 +190,14 @@ def asset_javascript(codes)
 				document.getElementById("hint").innerHTML = "Color " + colors[col] + " used " + count + " times";
 			})
 		}
+		document.addEventListener('keypress', (ev) => {
+			if (ev.key == " ") {
+				for (i=0; i<arr.length; i++) {
+					if (arr[i].innerHTML == "X") arr[i].innerHTML = "o";
+				}
+				ev.preventDefault();
+			}
+		})
 		</script>
 	%
 end
