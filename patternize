@@ -102,8 +102,7 @@ def show_stitch_counts(codes_used, colors)
 			end
 		end
 	end
-	#$stderr.puts ansi_colors.inspect
-	codes_used.each do |code, count|
+	codes_used.sort_by {|code,count| code.to_i}.each do |code, count|
 		ansi, _, _, _ = find_closest(ansi_colors, *colors[code])
 		$stderr.printf "  code %s (\x1b[38;5;%dm%02x, %02x, %02x\x1b[0m) = %d times\n",
 			code, ansi, *colors[code], count
