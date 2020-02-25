@@ -166,14 +166,24 @@ def asset_javascript(codes)
 		arr = document.getElementsByTagName("td")
 		for (i=0; i<arr.length; i++) {
 			arr[i].addEventListener('click', (ev) => {
+				if (ev.target.innerHTML == "X") {
+					ev.target.innerHTML = "o";
+					return;
+				}
+				if (ev.target.innerHTML == "o") {
+					ev.target.innerHTML = "X";
+					return;
+				}
 				col = ev.target.bgColor;
 				count = 0
 				for (j=0; j<arr.length; j++) {
 					if (arr[j].bgColor == col) {
 						count++;
-						arr[j].innerHTML = "X";
+						if (arr[j].innerHTML == "") {
+							arr[j].innerHTML = "X";
+						}
 					}
-					else {
+					else if (arr[j].innerHTML != "o") {
 						arr[j].innerHTML = "";
 					}
 				}
