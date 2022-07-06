@@ -90,7 +90,7 @@ def main
 	puts "</html>"
 
 	$stderr.puts "#{codes_used.size} colors used"
-	#show_stitch_counts(codes_used, colors)
+	show_stitch_counts(codes_used, colors)
 	$stderr.puts "#{codes_used.values.inject(&:+)} total stitches"
 end
 
