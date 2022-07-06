@@ -3,7 +3,7 @@
 # Convert a PNG file to an HTML pattern for cross stitching.
 # Each cell in the PNG file is mapped to the closest DMC floss code listed
 # in the file floss.csv, using Floyd-Steinberg dithering.
-# White cells are skipped -- not stitched, not dithered.
+# Cells equal to the background color are skipped -- not stitched, not dithered.
 #
 # Usage:
 #   ./patternize foo.png > foo.html
@@ -13,6 +13,9 @@
 #   - floss.csv (a list of DMC floss codes available, one per line)
 
 require 'chunky_png'
+
+BACKGROUND_COLOR = [255, 255, 255]
+#BACKGROUND_COLOR = [0, 0, 0]
 
 def main
 	if ARGV.size != 1
@@ -48,12 +51,12 @@ def main
 			sr = bracket(0, sr, 255)
 			sg = bracket(0, sg, 255)
 			sb = bracket(0, sb, 255)
-			if sr == 255 && sg == 255 && sb == 255
-				puts %Q{<td width="#{td_size}" bgcolor="#ffffff"></td>}
+			if [sr, sg, sb] == BACKGROUND_COLOR
+				puts %Q{<td width="#{td_size}" bgcolor="#%02x%02x%02x"></td>} % BACKGROUND_COLOR
 				next
 			end
 			code, r, g, b = find_closest(available, sr, sg, sb)
-			codes_used[code] += 1
+			codes_used[code] += 1 unless [r, g, b] == BACKGROUND_COLOR
 			printf %Q{<td width="#{td_size}" bgcolor="#%02x%02x%02x"></td>\n}, r, g, b
 			if x < image.width-1 && pixels[y][x+1] != [255, 255, 255]
 				pixels[y][x+1][0] += (sr-r) * 7/16
