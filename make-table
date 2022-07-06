@@ -5,9 +5,9 @@
 #
 # Usage:
 #   for i in `seq 1 6`; do
-#     wget http://www.camelia.sk/dmc_$i.htm
+#     wget -O dmc/dmc_$i.htm http://www.camelia.sk/dmc_$i.htm
 #   done
-#   ./make-table dmc_?.htm > table.csv
+#   ./make-table dmc/dmc_?.htm > table.csv
 
 code = hex = nil
 
