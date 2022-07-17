@@ -25,7 +25,7 @@ def main
 	end
 
 	colors = read_standard_colors("table.csv")
-	available = read_available_colors("floss.csv").map { |code| [ code, colors[code] ] }.to_h
+	available = read_available_colors("floss.csv").select{ |code| colors[code] }.map { |code| [ code, colors[code] ] }.to_h
 	$stderr.puts "#{colors.size} known colors"
 	$stderr.puts "#{available.size} colors available"
 
